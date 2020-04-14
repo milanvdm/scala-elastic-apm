@@ -17,8 +17,8 @@ object ExecutorServices {
         config match {
           case ExecutorConfig.CachedThreadPool =>
             JavaExecutors.newCachedThreadPool()
-          case ExecutorConfig.ThreadPool =>
-            new ThreadPoolExecutor(10, 20, 60, TimeUnit.SECONDS, new LinkedBlockingQueue())
+          case ExecutorConfig.ThreadPool(poolsize) =>
+            new ThreadPoolExecutor(poolsize, 2 * poolsize, 60, TimeUnit.SECONDS, new LinkedBlockingQueue())
           case ExecutorConfig.ForkJoinPool =>
             new ForkJoinPool(Runtime.getRuntime.availableProcessors)
         }

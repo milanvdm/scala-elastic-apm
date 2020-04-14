@@ -2,7 +2,7 @@
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%thread-id %-5level %logger{36} * %X{transaction.id} + %X{trace.id} * - %msg%n</pattern>
+            <pattern>%thread-id %-5level %logger{36} - %msg with transaction-id %X{transaction.id:-null}%n</pattern>
         </encoder>
     </appender>
 

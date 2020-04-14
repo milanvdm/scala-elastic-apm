@@ -1,9 +1,9 @@
 package me.milan
 
 import cats.effect.{Concurrent, ContextShift, Resource}
-import sttp.client.{SttpBackend, SttpBackendOptions}
 import sttp.client.asynchttpclient.WebSocketHandler
 import sttp.client.asynchttpclient.cats.AsyncHttpClientCatsBackend
+import sttp.client.{SttpBackend, SttpBackendOptions}
 
 object HttpRequest {
 
