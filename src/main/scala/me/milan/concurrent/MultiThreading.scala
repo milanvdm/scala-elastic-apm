@@ -21,7 +21,7 @@ class MultiThreading[F[_]: Async: ContextShift: Timer: Parallel](executionContex
   val underlying: Logger = LoggerFactory.getLogger(classOf[MultiThreading[F]])
   val unsafeLogger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromSlf4j[F](underlying)
 
-  def runMulti(toRunIO: () => F[Unit], toRunFuture: () => Future[Unit]): F[Unit] = (1 to 500)
+  def runMulti(toRunIO: () => F[Unit], toRunFuture: () => Future[Unit]): F[Unit] = (1 to 1)
     .toList
     .parTraverse { _ =>
       (
@@ -40,6 +40,6 @@ class MultiThreading[F[_]: Async: ContextShift: Timer: Parallel](executionContex
         }
     }.void
 
-  private def keepBusy: F[Unit] = Async[F].delay((1 to 10000).foreach(i => s"$i"))
+  private def keepBusy: F[Unit] = Async[F].delay((1 to 100000).foreach(i => s"$i"))
 
 }

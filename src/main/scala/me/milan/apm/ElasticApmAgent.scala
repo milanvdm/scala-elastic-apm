@@ -12,7 +12,7 @@ object ElasticApmAgent {
       "service-name" -> "apm-playground",
       "enable_log_correlation" -> "true",
       "application_packages" -> "me.milan",
-      "log_level" -> "DEBUG"
+      "log_level" -> "INFO"
     )
 
     ElasticApmAttacher.attach(configuration.asJava)

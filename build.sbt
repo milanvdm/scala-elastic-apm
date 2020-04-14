@@ -20,9 +20,10 @@ libraryDependencies ++= Seq(
   "io.opentracing.contrib" % "opentracing-concurrent" % "0.4.0",
   "io.opentracing.contrib" % "opentracing-jdbc" % "0.2.8",
 
-  "co.elastic.apm" % "apm-agent-attach" % "1.13.0",
-  "co.elastic.apm" % "apm-opentracing" % "1.13.0",
-  "co.elastic.apm" % "apm-agent-api" % "1.13.0",
+  "co.elastic.apm" % "apm-opentracing" % "1.15.0",
+
+  "co.elastic.apm" % "apm-agent-attach" % "1.15.0",
+  "co.elastic.apm" % "apm-agent-api" % "1.15.0",
 
   "org.tpolecat" %% "doobie-core"      % "0.8.8",
   "org.tpolecat" %% "doobie-h2"        % "0.8.8"

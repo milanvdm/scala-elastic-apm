@@ -1,4 +1,4 @@
-package me.milan.concurrent
+package me.milan.opentracing
 
 import java.util.concurrent.ExecutorService
 
@@ -6,11 +6,11 @@ import cats.effect.{Resource, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import io.opentracing.contrib.concurrent.TracedExecutorService
-import me.milan.apm.ElasticApmOpenTracing
+import me.milan.concurrent.{ExecutorConfig, ExecutorServices}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 
-object TracedExecutorServices {
+object OpenTracingExecutorServices {
 
   def fromExecutorService[F[_]: Sync](
                                        executorService: ExecutorService

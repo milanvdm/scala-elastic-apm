@@ -1,4 +1,4 @@
-package me.milan.apm
+package me.milan.opentracing
 
 import cats.effect.{Resource, Sync}
 import co.elastic.apm.opentracing.ElasticApmTracer
