@@ -3,23 +3,22 @@ package me.milan.concurrent
 import cats.Parallel
 import cats.effect.{Async, ContextShift, IO, Timer}
 import cats.instances.list._
-import cats.syntax.functor._
 import cats.syntax.flatMap._
+import cats.syntax.functor._
 import cats.syntax.parallel._
 import io.chrisdavenport.log4cats.SelfAwareStructuredLogger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import org.slf4j.{Logger, LoggerFactory}
-import sttp.client.Response
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Random, Success}
+import scala.util.Random
 
-class MultiThreading[F[_]: Async: ContextShift: Timer: Parallel](executionContext: ExecutionContext) {
+class MultiThreadingC[F[_]: Async: ContextShift: Timer: Parallel](executionContext: ExecutionContext) {
 
   implicit val ec: ExecutionContext = executionContext
 
-  val underlying: Logger = LoggerFactory.getLogger(classOf[MultiThreading[F]])
+  val underlying: Logger = LoggerFactory.getLogger(classOf[MultiThreadingC[F]])
   val unsafeLogger: SelfAwareStructuredLogger[F] = Slf4jLogger.getLoggerFromSlf4j[F](underlying)
 
   def runMulti(toRunF: F[Unit], toRunIO: IO[Unit]): F[Unit] = (1 to 10)

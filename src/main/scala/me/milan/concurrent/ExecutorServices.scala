@@ -5,11 +5,9 @@ import java.util.concurrent.{ExecutorService, ForkJoinPool, LinkedBlockingQueue,
 import cats.effect.{Resource, Sync}
 import cats.syntax.flatMap._
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
-
 object ExecutorServices {
 
-  def fromConfig[F[_]: Sync](
+  def fromConfigC[F[_]: Sync](
                               config: ExecutorConfig
                             ): Resource[F, ExecutorService] =
     Resource.make(
@@ -33,10 +31,16 @@ object ExecutorServices {
           )
     )
 
-  def asExecutionContextFromConfig[F[_]: Sync](
-                                                config: ExecutorConfig
-                                              ): Resource[F, ExecutionContextExecutorService] =
-    fromConfig(config)
-      .map(ExecutionContext.fromExecutorService)
+  def fromConfigF(
+                               config: ExecutorConfig
+                             ): ExecutorService =
+        config match {
+          case ExecutorConfig.CachedThreadPool =>
+            JavaExecutors.newCachedThreadPool()
+          case ExecutorConfig.ThreadPool(poolsize) =>
+            new ThreadPoolExecutor(poolsize, 2 * poolsize, 60, TimeUnit.SECONDS, new LinkedBlockingQueue())
+          case ExecutorConfig.ForkJoinPool =>
+            new ForkJoinPool(Runtime.getRuntime.availableProcessors)
+        }
 
 }

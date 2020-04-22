@@ -12,14 +12,18 @@ libraryDependencies ++= Seq(
   "io.chrisdavenport" %% "log4cats-slf4j"   % "1.0.1",
   "ch.qos.logback" % "logback-classic" % "1.2.3",
 
-  "com.softwaremill.sttp.client" %% "core" % "2.0.7",
-  "com.softwaremill.sttp.client" %% "async-http-client-backend-cats" % "2.0.7",
+  "com.softwaremill.sttp.client" %% "core" % "2.0.9",
+  "com.softwaremill.sttp.client" %% "async-http-client-backend-cats" % "2.0.9",
+  "com.softwaremill.sttp.client" %% "async-http-client-backend-future" % "2.0.9",
 
   "co.elastic.apm" % "apm-agent-attach" % "1.15.0",
   "co.elastic.apm" % "apm-agent-api" % "1.15.0",
 
   "org.tpolecat" %% "doobie-core"      % "0.8.8",
-  "org.tpolecat" %% "doobie-h2"        % "0.8.8"
+  "org.tpolecat" %% "doobie-h2"        % "0.8.8",
+
+  "org.scalikejdbc" %% "scalikejdbc"       % "3.4.1",
+  "com.h2database"  %  "h2"                % "1.4.200"
 )
 
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")

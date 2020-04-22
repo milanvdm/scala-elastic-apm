@@ -10,20 +10,20 @@ import fs2.Stream
 import io.chrisdavenport.log4cats.SelfAwareStructuredLogger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import me.milan.apm.ElasticApmAgent
-import me.milan.concurrent.{ExecutorConfig, ExecutorServices, MultiThreading, ScheduledExecutorServices}
+import me.milan.concurrent.{ExecutorConfig, ExecutorServices, MultiThreadingC, ScheduledExecutorServices}
 import org.slf4j.{Logger, LoggerFactory}
 import sttp.client._
 import sttp.client.asynchttpclient.WebSocketHandler
 
 import scala.concurrent.ExecutionContext
 
-object Main extends IOApp.WithContext {
+object MainC extends IOApp.WithContext {
 
-  val _ = ElasticApmAgent.start[IO].unsafeRunSync()
+  val _ = ElasticApmAgent.startC[IO].unsafeRunSync()
 
   override protected def executionContextResource: Resource[SyncIO, ExecutionContext] =
       ExecutorServices
-        .fromConfig[SyncIO](ExecutorConfig.ForkJoinPool)
+        .fromConfigC[SyncIO](ExecutorConfig.ForkJoinPool)
         .map(ExecutionContext.fromExecutorService)
 
   override protected def schedulerResource: Resource[SyncIO, ScheduledExecutorService] =
@@ -39,16 +39,16 @@ object Main extends IOApp.WithContext {
         transaction <- Stream.eval(IO.delay(ElasticApm.startTransaction().setName("test-trace")))
         _ <- Stream.eval(IO.delay(transaction.activate()))
         _ <- Stream.eval(unsafeLogger.info("Starting"))
-        database <- Stream.resource(Database.init[IO])
-        implicit0(backend: SttpBackend[IO, Nothing, WebSocketHandler]) <- Stream.resource(HttpRequest.init[IO])
+        database <- Stream.resource(Database.initC[IO])
+        implicit0(backend: SttpBackend[IO, Nothing, WebSocketHandler]) <- Stream.resource(HttpRequest.initC[IO])
         _ <- Stream.eval(
-          new MultiThreading[IO](executionContext).runMulti(
+          new MultiThreadingC[IO](executionContext).runMulti(
             basicRequest.get(uri"https://postman-echo.com/get?foo1=bar1").send().void,
             sql"select 41".query[Int].unique.transact(database).void
           )
         )
         _ <- Stream.eval(
-          new MultiThreading[IO](executionContext).runMulti(
+          new MultiThreadingC[IO](executionContext).runMulti(
             sql"select 42".query[Int].unique.transact(database).void,
             basicRequest.get(uri"https://postman-echo.com/get?foo2=bar2").send().void
           )
