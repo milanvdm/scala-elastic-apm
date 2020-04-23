@@ -2,7 +2,9 @@ name := "scala-apm-playground"
 
 version := "0.1"
 
-scalaVersion := "2.13.1"
+scalaVersion := "2.13.2"
+
+resolvers += Resolver.mavenLocal
 
 libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-core" % "2.1.0",
@@ -16,8 +18,8 @@ libraryDependencies ++= Seq(
   "com.softwaremill.sttp.client" %% "async-http-client-backend-cats" % "2.0.9",
   "com.softwaremill.sttp.client" %% "async-http-client-backend-future" % "2.0.9",
 
-  "co.elastic.apm" % "apm-agent-attach" % "1.15.0",
-  "co.elastic.apm" % "apm-agent-api" % "1.15.0",
+  "co.elastic.apm" % "apm-agent-attach" % "1.15.1-SNAPSHOT",
+  "co.elastic.apm" % "apm-agent-api" % "1.15.1-SNAPSHOT",
 
   "org.tpolecat" %% "doobie-core"      % "0.8.8",
   "org.tpolecat" %% "doobie-h2"        % "0.8.8",

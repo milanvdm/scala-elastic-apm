@@ -15,7 +15,7 @@ class MultiThreadingF(executionContext: ExecutionContext) {
 
   val logger: Logger = LoggerFactory.getLogger(classOf[MultiThreadingF])
 
-  def runMulti(toRunF1: () => Future[Unit], toRunF2: () => Future[Unit]): Future[Unit] = {
+  def runMulti(toRunF1: () => Future[Unit], toRunF2: () => Future[Unit]): Future[Unit] =
     Future
       .traverse(1 to 10) { _ =>
         val f1 = toRunF1().flatTap(_ => Future(logger.info("runF1")))
@@ -26,8 +26,6 @@ class MultiThreadingF(executionContext: ExecutionContext) {
         Future.sequence(List(f1, f2, f3, f4)).void
       }
       .void
-    Right("").swap
-  }
 
   private def keepBusy: Future[Unit] = Future((1 to 10000).foreach(i => s"$i"))
 

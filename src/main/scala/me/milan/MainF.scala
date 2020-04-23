@@ -37,8 +37,8 @@ object MainF extends App {
       )
       _ <- Future(logger.info("Halfway"))
       _ <- new MultiThreadingF(executionContext).runMulti(
-        () => Future(sql"select 42".execute().apply()),
-        () =>  basicRequest.get(uri"https://postman-echo.com/get?foo2=bar2").send().void
+        () =>  basicRequest.get(uri"https://postman-echo.com/get?foo2=bar2").send().void,
+        () => Future(sql"select 42".execute().apply())
       )
       _ <- Future(logger.info("Finished"))
       _ <- Future(transaction.end())
