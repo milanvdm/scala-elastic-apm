@@ -6,6 +6,8 @@ scalaVersion := "2.13.2"
 
 resolvers += Resolver.mavenLocal
 
+scalafmtOnCompile := true
+
 libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-core" % "2.1.0",
   "org.typelevel" %% "cats-effect" % "2.1.1",
@@ -25,7 +27,10 @@ libraryDependencies ++= Seq(
   "org.tpolecat" %% "doobie-h2"        % "0.8.8",
 
   "org.scalikejdbc" %% "scalikejdbc"       % "3.4.1",
-  "com.h2database"  %  "h2"                % "1.4.200"
+  "com.h2database"  %  "h2"                % "1.4.200",
+
+  "com.typesafe.akka" %% "akka-stream-kafka" % "2.0.2",
+  "com.typesafe.akka" %% "akka-stream" % "2.6.4"
 )
 
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")

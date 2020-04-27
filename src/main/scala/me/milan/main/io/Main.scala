@@ -1,8 +1,8 @@
-package me.milan
+package me.milan.main.io
 
 import java.util.concurrent.ScheduledExecutorService
 
-import cats.effect.{ExitCode, IO, IOApp, Resource, SyncIO}
+import cats.effect.{ ExitCode, IO, IOApp, Resource, SyncIO }
 import cats.syntax.functor._
 import co.elastic.apm.api.ElasticApm
 import doobie.implicits._
@@ -10,24 +10,27 @@ import fs2.Stream
 import io.chrisdavenport.log4cats.SelfAwareStructuredLogger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import me.milan.apm.ElasticApmAgent
-import me.milan.concurrent.{ExecutorConfig, ExecutorServices, MultiThreadingC, ScheduledExecutorServices}
-import org.slf4j.{Logger, LoggerFactory}
+import me.milan.concurrent.io.MultiThreading
+import me.milan.concurrent.{ ExecutorConfig, ExecutorServices, ScheduledExecutorServices }
+import me.milan.db.Database
+import me.milan.http.HttpRequest
+import org.slf4j.{ Logger, LoggerFactory }
 import sttp.client._
 import sttp.client.asynchttpclient.WebSocketHandler
 
 import scala.concurrent.ExecutionContext
 
-object MainC extends IOApp.WithContext {
+object Main extends IOApp.WithContext {
 
-  val _ = ElasticApmAgent.startC[IO].unsafeRunSync()
+  val _ = ElasticApmAgent.startF[IO].unsafeRunSync()
 
   override protected def executionContextResource: Resource[SyncIO, ExecutionContext] =
-      ExecutorServices
-        .fromConfigC[SyncIO](ExecutorConfig.ForkJoinPool)
-        .map(ExecutionContext.fromExecutorService)
+    ExecutorServices
+      .fromConfigResource[SyncIO](ExecutorConfig.ForkJoinPool)
+      .map(ExecutionContext.fromExecutorService)
 
   override protected def schedulerResource: Resource[SyncIO, ScheduledExecutorService] =
-    ScheduledExecutorServices.create[SyncIO]
+    ScheduledExecutorServices.createF[SyncIO]
 
   override def run(args: List[String]): IO[ExitCode] = {
 
@@ -39,16 +42,16 @@ object MainC extends IOApp.WithContext {
         transaction <- Stream.eval(IO.delay(ElasticApm.startTransaction().setName("test-trace")))
         _ <- Stream.eval(IO.delay(transaction.activate()))
         _ <- Stream.eval(unsafeLogger.info("Starting"))
-        database <- Stream.resource(Database.initC[IO])
-        implicit0(backend: SttpBackend[IO, Nothing, WebSocketHandler]) <- Stream.resource(HttpRequest.initC[IO])
+        database <- Stream.resource(Database.initF[IO])
+        implicit0(backend: SttpBackend[IO, Nothing, WebSocketHandler]) <- Stream.resource(HttpRequest.initF[IO])
         _ <- Stream.eval(
-          new MultiThreadingC[IO](executionContext).runMulti(
+          new MultiThreading[IO](executionContext).runMulti(
             basicRequest.get(uri"https://postman-echo.com/get?foo1=bar1").send().void,
             sql"select 41".query[Int].unique.transact(database).void
           )
         )
         _ <- Stream.eval(
-          new MultiThreadingC[IO](executionContext).runMulti(
+          new MultiThreading[IO](executionContext).runMulti(
             sql"select 42".query[Int].unique.transact(database).void,
             basicRequest.get(uri"https://postman-echo.com/get?foo2=bar2").send().void
           )

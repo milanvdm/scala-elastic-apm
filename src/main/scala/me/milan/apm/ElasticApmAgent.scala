@@ -10,15 +10,17 @@ object ElasticApmAgent {
   val configuration: Map[String, String] = Map(
     "service-name" -> "apm-playground",
     "enable_log_correlation" -> "true",
+//    "profiling_inferred_spans_enabled" -> "false",
+//    "profiling_inferred_spans_min_duration" -> "1s",
     "application_packages" -> "me.milan",
     "log_level" -> "INFO"
   )
 
-  def startC[F[_]: Sync]: F[Unit] = Sync[F].delay {
+  def startF[F[_]: Sync]: F[Unit] = Sync[F].delay {
     ElasticApmAttacher.attach(configuration.asJava)
   }
 
-  def startF(): Unit =
+  def start(): Unit =
     ElasticApmAttacher.attach(configuration.asJava)
 
 }
