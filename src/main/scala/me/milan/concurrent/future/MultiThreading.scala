@@ -20,7 +20,7 @@ class MultiThreading(executionContext: ExecutionContext) {
     toRunF2: () => Future[Unit]
   ): Future[Unit] =
     Future
-      .traverse(1 to 10) { _ =>
+      .traverse(1 to 100) { _ =>
         val f1 = toRunF1().flatTap(_ => Future(logger.info("runF1")))
         val f2 = toRunF2().flatTap(_ => Future(logger.info("runF2")))
         val f3 =

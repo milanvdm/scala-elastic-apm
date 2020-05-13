@@ -34,8 +34,8 @@ class MultiThreading[F[_]: Async: ContextShift: Timer: Parallel](executionContex
         Timer[F].sleep(Random.between(1000, 3000).millis).flatTap(_ => unsafeLogger.info("sleeping")),
         keepBusy.flatTap(_ => unsafeLogger.info("keeping busy"))
       ).parMapN {
-          case (_, _, _, _, _, _) => ()
-        }
+        case (_, _, _, _, _, _) => ()
+      }
     }.void
 
   private def keepBusy: F[Unit] = Async[F].delay((1 to 10000).foreach(i => s"$i"))

@@ -73,6 +73,7 @@ object Main extends App {
             () => Future(sql"select 42".execute().apply())
           )
         }
+        .map(_ => ElasticApm.currentTransaction().end())
         .runWith(Sink.ignore)
     } yield ()
 
