@@ -4,3 +4,4 @@ projects
 project/target
 target
 .DS_Store
+.credentials

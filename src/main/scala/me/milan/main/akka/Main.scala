@@ -6,6 +6,10 @@ import akka.kafka.scaladsl.Transactional
 import akka.kafka.{ ConsumerSettings, Subscriptions }
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
+import cats.instances.future._
+import cats.syntax.functor._
+import co.elastic.apm.api.ElasticApm
+import com.lightbend.cinnamon.akka.stream.CinnamonAttributes._
 import me.milan.apm.ElasticApmAgent
 import me.milan.concurrent.future.MultiThreading
 import me.milan.concurrent.{ ExecutorConfig, ExecutorServices }
@@ -17,10 +21,6 @@ import org.slf4j.{ Logger, LoggerFactory }
 import scalikejdbc.{ AutoSession, _ }
 import sttp.client.asynchttpclient.WebSocketHandler
 import sttp.client.{ SttpBackend, basicRequest, _ }
-import co.elastic.apm.api.ElasticApm
-
-import cats.syntax.functor._
-import cats.instances.future._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -74,7 +74,7 @@ object Main extends App {
           )
         }
         .map(_ => ElasticApm.currentTransaction().end())
-        .runWith(Sink.ignore)
+        .instrumentedRunWith(Sink.ignore)(name = "my-stream", traceable = true)
     } yield ()
 
 }
