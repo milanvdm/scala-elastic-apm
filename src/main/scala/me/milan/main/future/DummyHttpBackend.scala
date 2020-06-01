@@ -1,6 +1,5 @@
 package me.milan.main.future
 
-import java.io.{ ByteArrayInputStream, File, FileOutputStream, InputStream }
 import java.nio.ByteBuffer
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicReference
@@ -10,41 +9,15 @@ import co.elastic.apm.api.ElasticApm
 import io.netty.handler.codec.http.HttpHeaders
 import org.asynchttpclient.AsyncHandler.State
 import org.asynchttpclient.handler.StreamedAsyncHandler
-import org.asynchttpclient.{
-  AsyncHandler,
-  DefaultAsyncHttpClient,
-  DefaultAsyncHttpClientConfig,
-  HttpResponseBodyPart,
-  HttpResponseStatus,
-  RequestBuilder,
-  Response => AsyncResponse
-}
-import org.reactivestreams.{ Publisher, Subscriber, Subscription }
+import org.asynchttpclient.{AsyncHandler, DefaultAsyncHttpClient, DefaultAsyncHttpClientConfig, HttpResponseBodyPart, HttpResponseStatus, RequestBuilder, Response => AsyncResponse}
+import org.reactivestreams.{Publisher, Subscriber, Subscription}
 import sttp.client
-import sttp.client.{
-  ByteArrayBody,
-  ByteBufferBody,
-  FileBody,
-  IgnoreResponse,
-  InputStreamBody,
-  MappedResponseAs,
-  NoBody,
-  Request,
-  RequestBody,
-  Response,
-  ResponseAs,
-  ResponseAsByteArray,
-  ResponseAsFile,
-  ResponseAsFromMetadata,
-  ResponseAsStream,
-  ResponseMetadata,
-  StringBody
-}
-import sttp.model.{ Header, StatusCode }
+import sttp.client.{MappedResponseAs, Request, Response, ResponseAs, ResponseAsByteArray, ResponseMetadata}
+import sttp.model.{Header, StatusCode}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Seq
-import scala.concurrent.{ ExecutionContext, Future, Promise }
+import scala.concurrent.{ExecutionContext, Future, Promise}
 
 case class Canceler(cancel: () => Unit)
 
@@ -149,29 +122,6 @@ class DummyHttpBackend(implicit executionContext: ExecutionContext) {
         // if the request had no body, onStream() will never be called
         doComplete()
 
-      def saveFile(
-        file: File,
-        is: InputStream
-      ): Unit = {
-        if (!file.exists()) {
-          if (file.getParentFile != null) {
-            file.getParentFile.mkdirs()
-          }
-          file.createNewFile()
-        }
-
-        new FileOutputStream(file)
-      }
-
-      def publisherToFile(
-        p: Publisher[ByteBuffer],
-        f: File
-      ): Future[Unit] =
-        publisherToBytes(p).map(bytes => saveFile(f, new ByteArrayInputStream(bytes)))
-
-      def publisherToStreamBody(p: Publisher[ByteBuffer]): Nothing =
-        throw new IllegalStateException("This backend does not support streaming")
-
       def publisherToBytes(p: Publisher[ByteBuffer]): Future[Array[Byte]] =
         async { cb =>
           def success(r: ByteBuffer): Unit = cb(Right(r.array()))
@@ -205,46 +155,12 @@ class DummyHttpBackend(implicit executionContext: ExecutionContext) {
           case MappedResponseAs(raw, g) =>
             val nested = handleBody(p, raw, responseMetadata)
             nested.map(g(_, responseMetadata))
-          case ResponseAsFromMetadata(f) => handleBody(p, f(responseMetadata), responseMetadata)
-          case _: ResponseAsStream[_, _] => Future.successful(publisherToStreamBody(p).asInstanceOf[TT])
-          case IgnoreResponse            =>
-            // getting the body and discarding it
-            publisherToBytes(p).map(_ => ())
-
           case ResponseAsByteArray =>
             publisherToBytes(p).map(b => b) // adjusting type because ResponseAs is covariant
-
-          case ResponseAsFile(file) =>
-            publisherToFile(p, file.toFile).map(_ => file)
         }
 
       override def onThrowable(t: Throwable): Unit =
         error(t)
-    }
-
-  def setBody(
-    r: Request[_, Nothing],
-    body: RequestBody[Nothing],
-    rb: RequestBuilder
-  ): Unit =
-    body match {
-      case NoBody => // skip
-
-      case StringBody(b, encoding, _) =>
-        rb.setBody(b.getBytes(encoding))
-
-      case ByteArrayBody(b, _) =>
-        rb.setBody(b)
-
-      case ByteBufferBody(b, _) =>
-        rb.setBody(b)
-
-      case InputStreamBody(b, _) =>
-        rb.setBody(b)
-
-      case FileBody(b, _) =>
-        rb.setBody(b.toFile)
-
     }
 
   private def readResponseNoBody(response: AsyncResponse): Response[Unit] =
@@ -262,8 +178,6 @@ class DummyHttpBackend(implicit executionContext: ExecutionContext) {
       .map(e => Header.notValidated(e.getKey, e.getValue))
       .toList
 
-  def close(): Future[Unit] =
-    Future.successful(())
 }
 
 object EmptyPublisher extends Publisher[ByteBuffer] {
