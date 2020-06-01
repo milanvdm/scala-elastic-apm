@@ -32,12 +32,10 @@ object Main extends App {
       dummyBacked = new DummyHttpBackend()
       _ <- Future
         .traverse(1 to 10) { _ =>
-          val f1 = dummyBacked
+          dummyBacked
             .send(basicRequest.get(uri"https://postman-echo.com/get?foo1=bar1"))
             .void
             .flatTap(_ => Future(logger.info("runF1")))
-
-          Future.sequence(List(f1)).void
         }
         .void
       _ <- Future(logger.info("Finished"))

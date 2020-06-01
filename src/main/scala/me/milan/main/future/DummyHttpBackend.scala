@@ -9,15 +9,23 @@ import co.elastic.apm.api.ElasticApm
 import io.netty.handler.codec.http.HttpHeaders
 import org.asynchttpclient.AsyncHandler.State
 import org.asynchttpclient.handler.StreamedAsyncHandler
-import org.asynchttpclient.{AsyncHandler, DefaultAsyncHttpClient, DefaultAsyncHttpClientConfig, HttpResponseBodyPart, HttpResponseStatus, RequestBuilder, Response => AsyncResponse}
-import org.reactivestreams.{Publisher, Subscriber, Subscription}
+import org.asynchttpclient.{
+  AsyncHandler,
+  DefaultAsyncHttpClient,
+  DefaultAsyncHttpClientConfig,
+  HttpResponseBodyPart,
+  HttpResponseStatus,
+  RequestBuilder,
+  Response => AsyncResponse
+}
+import org.reactivestreams.{ Publisher, Subscriber, Subscription }
 import sttp.client
-import sttp.client.{MappedResponseAs, Request, Response, ResponseAs, ResponseAsByteArray, ResponseMetadata}
-import sttp.model.{Header, StatusCode}
+import sttp.client.{ MappedResponseAs, Request, Response, ResponseAs, ResponseAsByteArray, ResponseMetadata }
+import sttp.model.{ Header, StatusCode }
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Seq
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ ExecutionContext, Future, Promise }
 
 case class Canceler(cancel: () => Unit)
 
