@@ -8,10 +8,12 @@ resolvers += Resolver.mavenLocal
 
 scalafmtOnCompile := true
 
-cinnamon in run := true
-enablePlugins(Cinnamon)
+//cinnamon in run := true
+//enablePlugins(Cinnamon)
 
 libraryDependencies ++= Seq(
+  "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.1",
+
   "org.typelevel" %% "cats-core" % "2.1.0",
   "org.typelevel" %% "cats-effect" % "2.1.1",
   "co.fs2" %% "fs2-core" % "2.2.1",
@@ -23,9 +25,9 @@ libraryDependencies ++= Seq(
   "com.softwaremill.sttp.client" %% "async-http-client-backend-cats" % "2.0.9",
   "com.softwaremill.sttp.client" %% "async-http-client-backend-future" % "2.0.9",
 
-  "co.elastic.apm" % "apm-agent-attach" % "1.16.0",
-  "co.elastic.apm" % "apm-agent-api" % "1.16.0",
-  "co.elastic.apm" % "apm-opentracing" % "1.16.0",
+  "co.elastic.apm" % "apm-agent-attach" % "1.16.1-SNAPSHOT",
+  "co.elastic.apm" % "apm-agent-api" % "1.16.1-SNAPSHOT",
+  "co.elastic.apm" % "apm-opentracing" % "1.16.1-SNAPSHOT",
 
   "io.opentracing" % "opentracing-api" % "0.33.0",
 

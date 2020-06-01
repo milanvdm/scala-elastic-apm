@@ -12,7 +12,6 @@ import org.slf4j.{ Logger, LoggerFactory }
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.util.Random
 
 class MultiThreading[F[_]: Async: ContextShift: Timer: Parallel](executionContext: ExecutionContext) {
 
@@ -31,7 +30,7 @@ class MultiThreading[F[_]: Async: ContextShift: Timer: Parallel](executionContex
         Async.liftIO(toRunIO).flatTap(_ => unsafeLogger.info("runIO")),
         Async.fromFuture(Async[F].delay(toRunIO.unsafeToFuture())).flatTap(_ => unsafeLogger.info("runFuture")),
         Async[F].async[Unit](cb => cb(Right(()))).flatTap(_ => unsafeLogger.info("runCallback")),
-        Timer[F].sleep(Random.between(1000, 3000).millis).flatTap(_ => unsafeLogger.info("sleeping")),
+        Timer[F].sleep(1000.millis).flatTap(_ => unsafeLogger.info("sleeping")),
         keepBusy.flatTap(_ => unsafeLogger.info("keeping busy"))
       ).parMapN {
         case (_, _, _, _, _, _) => ()

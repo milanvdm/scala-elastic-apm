@@ -7,7 +7,6 @@ import org.slf4j.{ Logger, LoggerFactory }
 
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.Random
 
 class MultiThreading(executionContext: ExecutionContext) {
 
@@ -20,11 +19,11 @@ class MultiThreading(executionContext: ExecutionContext) {
     toRunF2: () => Future[Unit]
   ): Future[Unit] =
     Future
-      .traverse(1 to 5) { _ =>
+      .traverse(1 to 50) { _ =>
         val f1 = toRunF1().flatTap(_ => Future(logger.info("runF1")))
         val f2 = toRunF2().flatTap(_ => Future(logger.info("runF2")))
         val f3 =
-          Future(Thread.sleep(Random.between(1000, 3000).millis.toMillis)).flatTap(_ => Future(logger.info("sleeping")))
+          Future(Thread.sleep(1000.millis.toMillis)).flatTap(_ => Future(logger.info("sleeping")))
         val f4 = keepBusy.flatTap(_ => Future(logger.info("keeping busy")))
 
         Future.sequence(List(f1, f2, f3, f4)).void

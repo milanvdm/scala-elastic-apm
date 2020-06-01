@@ -30,20 +30,22 @@ object Main extends App {
   val program =
     for {
       transaction <- Future(ElasticApm.startTransaction().setName("test-trace"))
-      _ <- Future(transaction.activate())
+      scope <- Future(transaction.activate())
       _ <- Future(logger.info("Starting"))
       implicit0(database: AutoSession) <- Future(Database.init)
-      implicit0(backend: SttpBackend[Future, Nothing, WebSocketHandler]) <- Future(HttpRequest.init())
+//      implicit0(backend: SttpBackend[Future, Nothing, WebSocketHandler]) <- Future(HttpRequest.init())
+      dummyBacked = new DummyHttpBackend()
       _ <- new MultiThreading(executionContext).runMulti(
-        () => basicRequest.get(uri"https://postman-echo.com/get?foo1=bar1").send().void,
+        () => dummyBacked.send(basicRequest.get(uri"https://postman-echo.com/get?foo1=bar1")).void,
         () => Future(sql"select 42".execute().apply())
       )
       _ <- Future(logger.info("Halfway"))
       _ <- new MultiThreading(executionContext).runMulti(
-        () => basicRequest.get(uri"https://postman-echo.com/get?foo2=bar2").send().void,
+        () => dummyBacked.send(basicRequest.get(uri"https://postman-echo.com/get?foo2=bar2")).void,
         () => Future(sql"select 42".execute().apply())
       )
       _ <- Future(logger.info("Finished"))
+      _ <- Future(scope.close())
       _ <- Future(transaction.end())
     } yield ()
 
