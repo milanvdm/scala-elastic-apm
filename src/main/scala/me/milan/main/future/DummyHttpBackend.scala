@@ -2,7 +2,6 @@ package me.milan.main.future
 
 import java.io.{ ByteArrayInputStream, File, FileOutputStream, InputStream }
 import java.nio.ByteBuffer
-import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.UnaryOperator
@@ -45,16 +44,25 @@ import sttp.model.{ Header, StatusCode }
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Seq
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ ExecutionContext, Future, Promise }
+
+case class Canceler(cancel: () => Unit)
 
 class DummyHttpBackend(implicit executionContext: ExecutionContext) {
-
-  val monad = new FutureMonad()
 
   val configBuilder: DefaultAsyncHttpClientConfig.Builder = new DefaultAsyncHttpClientConfig.Builder()
     .setCookieStore(null)
 
   val asyncClient = new DefaultAsyncHttpClient(configBuilder.build())
+
+  def async[T](register: (Either[Throwable, T] => Unit) => Canceler): Future[T] = {
+    val p = Promise[T]()
+    register {
+      case Left(t)  => p.failure(t)
+      case Right(t) => p.success(t)
+    }
+    p.future
+  }
 
   def send[T](r: Request[T, Nothing]): Future[Response[T]] = {
     val rb = new RequestBuilder(r.method.method)
@@ -63,34 +71,28 @@ class DummyHttpBackend(implicit executionContext: ExecutionContext) {
 
     val request = asyncClient.prepareRequest(rb)
 
-    val uuid = UUID.randomUUID().toString
+    async[Future[Response[T]]] { cb =>
+      def success(r: Future[Response[T]]): Unit = {
+        println(s"2: ${ElasticApm.currentTransaction().getId}")
+        cb(Right(r))
+      }
 
-    monad
-      .flatten(
-        monad
-          .async[Future[Response[T]]] { cb =>
-            def success(r: Future[Response[T]]): Unit = {
-              println(s"2: $uuid - ${ElasticApm.currentTransaction().getId}")
-              cb(Right(r))
-            }
+      def error(t: Throwable): Unit = {
+        println(s"3: ${ElasticApm.currentTransaction().getId}")
+        cb(Left(t))
+      }
 
-            def error(t: Throwable): Unit = {
-              println(s"3: $uuid - ${ElasticApm.currentTransaction().getId}")
-              cb(Left(t))
-            }
+      println(s"1: ${ElasticApm.currentTransaction().getId}")
 
-            println(s"1: $uuid - ${ElasticApm.currentTransaction().getId}")
-
-            val lf = request.execute(streamingAsyncHandler(r.response, success, error))
-            Canceler(() => lf.abort(new InterruptedException))
-          }
-          .map { x =>
-            println(s"4: $uuid - ${ElasticApm.currentTransaction().getId}")
-            x
-          }
-      )
+      val lf = request.execute(streamingAsyncHandler(r.response, success, error))
+      Canceler(() => lf.abort(new InterruptedException))
+    }.map { x =>
+        println(s"4: ${ElasticApm.currentTransaction().getId}")
+        x
+      }
+      .flatMap(identity)
       .map { x =>
-        println(s"5: $uuid - ${ElasticApm.currentTransaction().getId}")
+        println(s"5: ${ElasticApm.currentTransaction().getId}")
         x
       }
 
@@ -171,7 +173,7 @@ class DummyHttpBackend(implicit executionContext: ExecutionContext) {
         throw new IllegalStateException("This backend does not support streaming")
 
       def publisherToBytes(p: Publisher[ByteBuffer]): Future[Array[Byte]] =
-        monad.async { cb =>
+        async { cb =>
           def success(r: ByteBuffer): Unit = cb(Right(r.array()))
 
           def error(t: Throwable): Unit = cb(Left(t))
@@ -204,7 +206,7 @@ class DummyHttpBackend(implicit executionContext: ExecutionContext) {
             val nested = handleBody(p, raw, responseMetadata)
             nested.map(g(_, responseMetadata))
           case ResponseAsFromMetadata(f) => handleBody(p, f(responseMetadata), responseMetadata)
-          case _: ResponseAsStream[_, _] => monad.unit(publisherToStreamBody(p).asInstanceOf[TT])
+          case _: ResponseAsStream[_, _] => Future.successful(publisherToStreamBody(p).asInstanceOf[TT])
           case IgnoreResponse            =>
             // getting the body and discarding it
             publisherToBytes(p).map(_ => ())
@@ -261,7 +263,7 @@ class DummyHttpBackend(implicit executionContext: ExecutionContext) {
       .toList
 
   def close(): Future[Unit] =
-    monad.unit(())
+    Future.successful(())
 }
 
 object EmptyPublisher extends Publisher[ByteBuffer] {

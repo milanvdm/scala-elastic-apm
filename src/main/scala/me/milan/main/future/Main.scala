@@ -31,7 +31,7 @@ object Main extends App {
       _ <- Future(logger.info("Starting"))
       dummyBacked = new DummyHttpBackend()
       _ <- Future
-        .traverse(1 to 50) { _ =>
+        .traverse(1 to 10) { _ =>
           val f1 = dummyBacked
             .send(basicRequest.get(uri"https://postman-echo.com/get?foo1=bar1"))
             .void
