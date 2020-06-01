@@ -1,17 +1,14 @@
 package me.milan.main.future
 
+import java.util.concurrent.ForkJoinPool
+
 import cats.instances.future._
+import cats.syntax.flatMap._
 import cats.syntax.functor._
 import co.elastic.apm.api.ElasticApm
 import me.milan.apm.ElasticApmAgent
-import me.milan.concurrent.future.MultiThreading
-import me.milan.concurrent.{ ExecutorConfig, ExecutorServices }
-import me.milan.db.Database
-import me.milan.http.HttpRequest
 import org.slf4j.{ Logger, LoggerFactory }
-import scalikejdbc._
 import sttp.client._
-import sttp.client.asynchttpclient.WebSocketHandler
 
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, ExecutionContext, Future }
@@ -22,7 +19,7 @@ object Main extends App {
 
   implicit val executionContext: ExecutionContext =
     ExecutionContext.fromExecutorService(
-      ExecutorServices.fromConfig(ExecutorConfig.ForkJoinPool)
+      new ForkJoinPool(Runtime.getRuntime.availableProcessors)
     )
 
   val logger: Logger = LoggerFactory.getLogger("Main")
@@ -32,18 +29,17 @@ object Main extends App {
       transaction <- Future(ElasticApm.startTransaction().setName("test-trace"))
       scope <- Future(transaction.activate())
       _ <- Future(logger.info("Starting"))
-      implicit0(database: AutoSession) <- Future(Database.init)
-//      implicit0(backend: SttpBackend[Future, Nothing, WebSocketHandler]) <- Future(HttpRequest.init())
       dummyBacked = new DummyHttpBackend()
-      _ <- new MultiThreading(executionContext).runMulti(
-        () => dummyBacked.send(basicRequest.get(uri"https://postman-echo.com/get?foo1=bar1")).void,
-        () => Future(sql"select 42".execute().apply())
-      )
-      _ <- Future(logger.info("Halfway"))
-      _ <- new MultiThreading(executionContext).runMulti(
-        () => dummyBacked.send(basicRequest.get(uri"https://postman-echo.com/get?foo2=bar2")).void,
-        () => Future(sql"select 42".execute().apply())
-      )
+      _ <- Future
+        .traverse(1 to 50) { _ =>
+          val f1 = dummyBacked
+            .send(basicRequest.get(uri"https://postman-echo.com/get?foo1=bar1"))
+            .void
+            .flatTap(_ => Future(logger.info("runF1")))
+
+          Future.sequence(List(f1)).void
+        }
+        .void
       _ <- Future(logger.info("Finished"))
       _ <- Future(scope.close())
       _ <- Future(transaction.end())

@@ -1,6 +1,5 @@
 package me.milan.apm
 
-import cats.effect.Sync
 import co.elastic.apm.attach.ElasticApmAttacher
 
 import scala.jdk.CollectionConverters._
@@ -16,10 +15,6 @@ object ElasticApmAgent {
     "log_level" -> "INFO",
     "disable_instrumentations" -> ""
   )
-
-  def startF[F[_]: Sync]: F[Unit] = Sync[F].delay {
-    ElasticApmAttacher.attach(configuration.asJava)
-  }
 
   def start(): Unit =
     ElasticApmAttacher.attach(configuration.asJava)
