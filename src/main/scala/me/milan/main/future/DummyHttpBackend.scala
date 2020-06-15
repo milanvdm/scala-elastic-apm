@@ -36,7 +36,7 @@ class DummyHttpBackend(implicit executionContext: ExecutionContext) {
 
   val asyncClient = new DefaultAsyncHttpClient(configBuilder.build())
 
-  def async[T](register: (Either[Throwable, T] => Unit) => Canceler): Future[T] = {
+  def async[T](register: (Either[Throwable, T] => Unit) => Unit): Future[T] = {
     val p = Promise[T]()
     register {
       case Left(t)  => p.failure(t)
