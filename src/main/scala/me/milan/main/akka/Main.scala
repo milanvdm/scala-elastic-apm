@@ -63,8 +63,9 @@ object Main extends App {
         .asSourceWithContext(p => (p.record.key, p.partitionOffset))
         .asSource
         .map { message =>
+          val transaction = ElasticApm.startTransaction()
+          transaction.activate()
           val paymentId = message._1.record.key()
-          logger.info(ElasticApm.currentTransaction().getId())
           ElasticApm.currentTransaction().addLabel("payment-id", paymentId)
         }
         .mapAsync(4) { _ =>
@@ -73,7 +74,6 @@ object Main extends App {
             () => Future(sql"select 42".execute().apply())
           )
         }
-        .map(_ => ElasticApm.currentTransaction().end())
         .instrumentedRunWith(Sink.ignore)(name = "my-stream", traceable = true)
     } yield ()
 

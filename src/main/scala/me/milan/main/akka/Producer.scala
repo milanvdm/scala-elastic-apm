@@ -1,6 +1,6 @@
 package me.milan.main.akka
 
-import java.util.Properties
+import java.util.{ Properties, UUID }
 
 import org.apache.kafka.clients.producer.{ KafkaProducer, ProducerConfig, ProducerRecord }
 
@@ -24,13 +24,13 @@ object Producer extends App {
       .send(
         new ProducerRecord(
           "payments",
-          "payment-id",
+          UUID.randomUUID().toString,
           "payment-id"
         )
       )
       .get()
 
-    Thread.sleep(10000)
+    Thread.sleep(1000)
   }
 
 }

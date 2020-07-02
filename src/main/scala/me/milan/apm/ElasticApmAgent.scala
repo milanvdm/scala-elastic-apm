@@ -13,8 +13,7 @@ object ElasticApmAgent {
 //    "profiling_inferred_spans_enabled" -> "false",
 //    "profiling_inferred_spans_min_duration" -> "1s",
     "application_packages" -> "me.milan",
-    "log_level" -> "INFO",
-    "disable_instrumentations" -> ""
+    "log_level" -> "INFO"
   )
 
   def startF[F[_]: Sync]: F[Unit] = Sync[F].delay {
