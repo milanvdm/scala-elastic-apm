@@ -63,8 +63,6 @@ object Main extends App {
         .asSourceWithContext(p => (p.record.key, p.partitionOffset))
         .asSource
         .map { message =>
-          val transaction = ElasticApm.startTransaction()
-          transaction.activate()
           val paymentId = message._1.record.key()
           ElasticApm.currentTransaction().addLabel("payment-id", paymentId)
         }
