@@ -9,7 +9,7 @@ import akka.stream.scaladsl.Sink
 import cats.instances.future._
 import cats.syntax.functor._
 import co.elastic.apm.api.ElasticApm
-import com.lightbend.cinnamon.akka.stream.CinnamonAttributes._
+import io.opentracing.util.GlobalTracer
 import me.milan.apm.ElasticApmAgent
 import me.milan.concurrent.future.MultiThreading
 import me.milan.concurrent.{ ExecutorConfig, ExecutorServices }
@@ -64,7 +64,9 @@ object Main extends App {
         .asSource
         .map { message =>
           val paymentId = message._1.record.key()
-          ElasticApm.currentTransaction().addLabel("payment-id", paymentId)
+          GlobalTracer.get.activeSpan.setTag("payment-id", paymentId)
+//          ElasticApm.currentTransaction().addLabel("payment-id", paymentId)
+//          ElasticApm.currentTransaction().setType("payment")
         }
         .mapAsync(4) { _ =>
           new MultiThreading(executionContext).runMulti(
@@ -72,7 +74,7 @@ object Main extends App {
             () => Future(sql"select 42".execute().apply())
           )
         }
-        .instrumentedRunWith(Sink.ignore)(name = "my-stream", traceable = true)
+        .runWith(Sink.ignore)
     } yield ()
 
 }
