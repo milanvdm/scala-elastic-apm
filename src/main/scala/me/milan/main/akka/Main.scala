@@ -64,9 +64,9 @@ object Main extends App {
         .asSource
         .map { message =>
           val paymentId = message._1.record.key()
-          GlobalTracer.get.activeSpan.setTag("payment-id", paymentId)
-//          ElasticApm.currentTransaction().addLabel("payment-id", paymentId)
-//          ElasticApm.currentTransaction().setType("payment")
+//          GlobalTracer.get.activeSpan.setTag("payment-id", paymentId)
+          ElasticApm.currentTransaction().addLabel("payment-id", paymentId)
+          ElasticApm.currentTransaction().setType("payment")
         }
         .mapAsync(4) { _ =>
           new MultiThreading(executionContext).runMulti(
