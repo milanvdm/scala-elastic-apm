@@ -29,8 +29,6 @@ object Producer extends App {
         )
       )
       .get()
-
-    Thread.sleep(1000)
   }
 
 }

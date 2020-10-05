@@ -68,15 +68,19 @@ object Main extends App {
               consumerSettings,
               Subscriptions.topics("payments")
             )
+            .map { message =>
+              ElasticApm.currentTransaction().setType("payment")
+              message
+            }
             .asSourceWithContext(p => (p.record.key, p.partitionOffset))
             .map { message =>
               val paymentId = message.record.key()
               ElasticApm.currentTransaction().addLabel("payment-id", paymentId)
-              ElasticApm.currentTransaction().setType("payment")
               ()
             }
             .via(createMultiFlow())
             .asSource
+            .instrumentedPartial(name = "payment-stream-processor", traceable = false)
         }
         .instrumentedRunWith(Sink.ignore)(name = "payment-stream", reportByName = true, traceable = false)
     } yield ()
@@ -87,14 +91,14 @@ object Main extends App {
     database: AutoSession,
     backend: SttpBackend[Future, Nothing, WebSocketHandler]
   ): FlowWithContext[Unit, Ctx, Unit, Ctx, NotUsed] =
-    (1 to 5).foldLeft(
+    (1 to 20).foldLeft(
       FlowWithContext[Unit, Ctx]
     ) { (flow, _) =>
       flow.via(
         FlowWithContext[Unit, Ctx]
-          .mapAsync(4) { _ =>
+          .mapAsync(8) { _ =>
             new MultiThreading(executionContext).runMulti(
-              () => basicRequest.get(uri"https://postman-echo.com/get?foo1=bar1").send().void,
+              () => Future(sql"select 42".execute().apply()),
               () => Future(sql"select 42".execute().apply())
             )
           }
