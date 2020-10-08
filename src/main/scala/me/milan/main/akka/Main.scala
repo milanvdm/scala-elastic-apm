@@ -22,6 +22,7 @@ import scalikejdbc.{ AutoSession, _ }
 import sttp.client.asynchttpclient.WebSocketHandler
 import sttp.client.{ SttpBackend, basicRequest, _ }
 import com.lightbend.cinnamon.akka.stream.CinnamonAttributes.SourceWithInstrumented
+import io.opentracing.util.GlobalTracer
 
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
@@ -70,12 +71,16 @@ object Main extends App {
             )
             .map { message =>
               ElasticApm.currentTransaction().setType("payment")
+              val span = GlobalTracer.get().activeSpan()
+              span.setTag("type", "payment")
               message
             }
             .asSourceWithContext(p => (p.record.key, p.partitionOffset))
             .map { message =>
               val paymentId = message.record.key()
               ElasticApm.currentTransaction().addLabel("payment-id", paymentId)
+              val span = GlobalTracer.get().activeSpan()
+              span.setTag("payment-id", paymentId)
               ()
             }
             .via(createMultiFlow())
@@ -91,14 +96,14 @@ object Main extends App {
     database: AutoSession,
     backend: SttpBackend[Future, Nothing, WebSocketHandler]
   ): FlowWithContext[Unit, Ctx, Unit, Ctx, NotUsed] =
-    (1 to 20).foldLeft(
+    (1 to 5).foldLeft(
       FlowWithContext[Unit, Ctx]
     ) { (flow, _) =>
       flow.via(
         FlowWithContext[Unit, Ctx]
           .mapAsync(8) { _ =>
             new MultiThreading(executionContext).runMulti(
-              () => Future(sql"select 42".execute().apply()),
+              () => basicRequest.get(uri"https://postman-echo.com/get?foo1=bar1").send().void,
               () => Future(sql"select 42".execute().apply())
             )
           }

@@ -23,9 +23,9 @@ libraryDependencies ++= Seq(
   "com.softwaremill.sttp.client" %% "async-http-client-backend-cats" % "2.0.9",
   "com.softwaremill.sttp.client" %% "async-http-client-backend-future" % "2.0.9",
 
-  "co.elastic.apm" % "apm-agent-attach" % "1.18.0",
-  "co.elastic.apm" % "apm-agent-api" % "1.18.0",
-  "co.elastic.apm" % "apm-opentracing" % "1.18.0",
+  "co.elastic.apm" % "apm-agent-attach" % "1.18.1",
+  "co.elastic.apm" % "apm-agent-api" % "1.18.1",
+  "co.elastic.apm" % "apm-opentracing" % "1.18.1",
 
   "org.tpolecat" %% "doobie-core"      % "0.8.8",
   "org.tpolecat" %% "doobie-h2"        % "0.8.8",
