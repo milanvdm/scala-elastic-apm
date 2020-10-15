@@ -9,7 +9,6 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{ FlowWithContext, RestartSource, Sink }
 import cats.instances.future._
 import cats.syntax.functor._
-import co.elastic.apm.api.ElasticApm
 import me.milan.apm.ElasticApmAgent
 import me.milan.concurrent.future.MultiThreading
 import me.milan.concurrent.{ ExecutorConfig, ExecutorServices }
@@ -70,7 +69,6 @@ object Main extends App {
               Subscriptions.topics("payments")
             )
             .map { message =>
-              ElasticApm.currentTransaction().setType("payment")
               val span = GlobalTracer.get().activeSpan()
               span.setTag("type", "payment")
               message
@@ -78,7 +76,6 @@ object Main extends App {
             .asSourceWithContext(p => (p.record.key, p.partitionOffset))
             .map { message =>
               val paymentId = message.record.key()
-              ElasticApm.currentTransaction().addLabel("payment-id", paymentId)
               val span = GlobalTracer.get().activeSpan()
               span.setTag("payment-id", paymentId)
               ()
@@ -103,7 +100,7 @@ object Main extends App {
         FlowWithContext[Unit, Ctx]
           .mapAsync(8) { _ =>
             new MultiThreading(executionContext).runMulti(
-              () => basicRequest.get(uri"https://postman-echo.com/get?foo1=bar1").send().void,
+              () => Future(sql"select 42".execute().apply()),
               () => Future(sql"select 42".execute().apply())
             )
           }
