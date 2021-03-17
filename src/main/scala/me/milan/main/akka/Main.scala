@@ -4,8 +4,8 @@ import akka.NotUsed
 import akka.actor.setup.ActorSystemSetup
 import akka.actor.{ ActorSystem, BootstrapSetup }
 import akka.kafka.scaladsl.Transactional
-import akka.kafka.{ ConsumerSettings, Subscriptions }
-import akka.stream.Materializer
+import akka.kafka.{ ConsumerSettings, ProducerMessage, ProducerSettings, Subscriptions }
+import akka.stream.{ Materializer, RestartSettings }
 import akka.stream.scaladsl.{ FlowWithContext, RestartSource, Sink }
 import cats.instances.future._
 import cats.syntax.functor._
@@ -15,23 +15,25 @@ import me.milan.concurrent.{ ExecutorConfig, ExecutorServices }
 import me.milan.db.Database
 import me.milan.http.HttpRequest
 import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.common.serialization.{ ByteArrayDeserializer, StringDeserializer }
+import org.apache.kafka.common.serialization.{ ByteArrayDeserializer, StringDeserializer, StringSerializer }
 import org.slf4j.{ Logger, LoggerFactory }
 import scalikejdbc.{ AutoSession, _ }
 import sttp.client.asynchttpclient.WebSocketHandler
 import sttp.client.{ SttpBackend, basicRequest, _ }
 import com.lightbend.cinnamon.akka.stream.CinnamonAttributes.SourceWithInstrumented
 import io.opentracing.util.GlobalTracer
-
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
+
+import me.milan.main.io.alpakka.Main.{ random, transactionalId }
+import org.apache.kafka.clients.producer.ProducerRecord
 
 object Main extends App {
 
   // Call Grpc
   // Finish process
 
-  val _ = ElasticApmAgent.start()
+  ElasticApmAgent.start()
 
   implicit val executionContext: ExecutionContext =
     ExecutionContext.fromExecutorService(
@@ -46,12 +48,17 @@ object Main extends App {
   )
   implicit val materializer: Materializer = Materializer.createMaterializer(actorSystem)
 
-  val config = actorSystem.settings.config.getConfig("akka.kafka.consumer")
+  val consumerConfig = actorSystem.settings.config.getConfig("akka.kafka.consumer")
   val consumerSettings =
-    ConsumerSettings(config, new StringDeserializer, new ByteArrayDeserializer)
+    ConsumerSettings(consumerConfig, new StringDeserializer, new ByteArrayDeserializer)
       .withBootstrapServers("localhost:9092")
-      .withGroupId("123")
+      .withGroupId("1234")
       .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
+
+  val producerConfig = actorSystem.settings.config.getConfig("akka.kafka.producer")
+  val producerSettings = ProducerSettings(producerConfig, new StringSerializer, new StringSerializer)
+
+  private val random = scala.util.Random
 
   val program =
     for {
@@ -59,9 +66,11 @@ object Main extends App {
       implicit0(backend: SttpBackend[Future, Nothing, WebSocketHandler]) <- Future(HttpRequest.init())
       _ <- RestartSource
         .onFailuresWithBackoff(
-          minBackoff = 3.seconds,
-          maxBackoff = 30.seconds,
-          randomFactor = 0.2
+          RestartSettings(
+            minBackoff = 3.seconds,
+            maxBackoff = 30.seconds,
+            randomFactor = 0.2
+          )
         ) { () =>
           Transactional
             .source(
@@ -69,42 +78,34 @@ object Main extends App {
               Subscriptions.topics("payments")
             )
             .map { message =>
+              println(message)
               val span = GlobalTracer.get().activeSpan()
               span.setTag("type", "payment")
               message
             }
-            .asSourceWithContext(p => (p.record.key, p.partitionOffset))
             .map { message =>
               val paymentId = message.record.key()
               val span = GlobalTracer.get().activeSpan()
               span.setTag("payment-id", paymentId)
-              ()
+              message
             }
-            .via(createMultiFlow())
-            .asSource
-            .instrumentedPartial(name = "payment-stream-processor", traceable = false)
+            .mapAsync(8) { message =>
+              new MultiThreading(executionContext)
+                .runMulti(
+                  () => Future(sql"select 42".execute().apply()),
+                  () => Future(sql"select 42".execute().apply())
+                )
+                .map(_ => message)
+            }
+            .map { message =>
+              ProducerMessage
+                .single(new ProducerRecord("test", 0, random.nextInt.toString, ""), message.partitionOffset)
+            }
+            .via(Transactional.flow(producerSettings, "transactionalId"))
+        //.instrumentedPartial(name = "payment-stream-processor", traceable = false)
         }
-        .instrumentedRunWith(Sink.ignore)(name = "payment-stream", reportByName = true, traceable = false)
+        .runWith(Sink.ignore)
+      //.instrumentedRunWith(Sink.ignore)(name = "payment-stream", reportByName = true, traceable = false)
     } yield ()
-
-  def createMultiFlow[Ctx](
-  )(
-    implicit
-    database: AutoSession,
-    backend: SttpBackend[Future, Nothing, WebSocketHandler]
-  ): FlowWithContext[Unit, Ctx, Unit, Ctx, NotUsed] =
-    (1 to 5).foldLeft(
-      FlowWithContext[Unit, Ctx]
-    ) { (flow, _) =>
-      flow.via(
-        FlowWithContext[Unit, Ctx]
-          .mapAsync(8) { _ =>
-            new MultiThreading(executionContext).runMulti(
-              () => Future(sql"select 42".execute().apply()),
-              () => Future(sql"select 42".execute().apply())
-            )
-          }
-      )
-    }
 
 }

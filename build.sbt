@@ -33,8 +33,8 @@ libraryDependencies ++= Seq(
   "org.scalikejdbc" %% "scalikejdbc"       % "3.5.0",
   "com.h2database"  %  "h2"                % "1.4.200",
 
-  "com.typesafe.akka" %% "akka-stream-kafka" % "2.0.5",
-  "com.typesafe.akka" %% "akka-stream" % "2.6.10",
+  "com.typesafe.akka" %% "akka-stream-kafka" % "2.0.7",
+  "com.typesafe.akka" %% "akka-stream" % "2.6.13",
 
   Cinnamon.library.cinnamonCHMetrics,
   Cinnamon.library.cinnamonAkkaStream,
