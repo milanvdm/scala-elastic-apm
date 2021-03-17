@@ -53,10 +53,12 @@ object Main extends App {
     ConsumerSettings(consumerConfig, new StringDeserializer, new ByteArrayDeserializer)
       .withBootstrapServers("localhost:9092")
       .withGroupId("1234")
-      .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
+      .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
 
   val producerConfig = actorSystem.settings.config.getConfig("akka.kafka.producer")
-  val producerSettings = ProducerSettings(producerConfig, new StringSerializer, new StringSerializer)
+  val producerSettings =
+    ProducerSettings(producerConfig, new StringSerializer, new StringSerializer)
+      .withBootstrapServers("localhost:9092")
 
   private val random = scala.util.Random
 
@@ -99,12 +101,11 @@ object Main extends App {
             }
             .map { message =>
               ProducerMessage
-                .single(new ProducerRecord("test", 0, random.nextInt.toString, ""), message.partitionOffset)
+                .single(new ProducerRecord("test", 0, random.nextInt.toString, "blah blah"), message.partitionOffset)
             }
             .via(Transactional.flow(producerSettings, "transactionalId"))
         //.instrumentedPartial(name = "payment-stream-processor", traceable = false)
-        }
-        .runWith(Sink.ignore)
+        }.runWith(Sink.ignore)
       //.instrumentedRunWith(Sink.ignore)(name = "payment-stream", reportByName = true, traceable = false)
     } yield ()
 
