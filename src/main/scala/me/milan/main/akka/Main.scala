@@ -25,7 +25,6 @@ import io.opentracing.util.GlobalTracer
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 
-import me.milan.main.io.alpakka.Main.{ random, transactionalId }
 import org.apache.kafka.clients.producer.ProducerRecord
 
 object Main extends App {
@@ -105,7 +104,8 @@ object Main extends App {
             }
             .via(Transactional.flow(producerSettings, "transactionalId"))
         //.instrumentedPartial(name = "payment-stream-processor", traceable = false)
-        }.runWith(Sink.ignore)
+        }
+        .runWith(Sink.ignore)
       //.instrumentedRunWith(Sink.ignore)(name = "payment-stream", reportByName = true, traceable = false)
     } yield ()
 
