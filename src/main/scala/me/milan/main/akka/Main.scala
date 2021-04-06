@@ -81,7 +81,6 @@ object Main extends App {
               Subscriptions.topics("payments")
             )
             .map { message =>
-              println(message)
               val span = GlobalTracer.get().activeSpan()
               span.setTag("type", "payment")
               message
@@ -131,8 +130,9 @@ object Main extends App {
                 .single(new ProducerRecord("test", 0, random.nextInt.toString, "blah blah"), offset)
             }
             .via(Transactional.flow(producerSettings, "transactionalId"))
+            .instrumentedPartial(name = "payment-stream-processor", traceable = false)
         }
-        .runWith(Sink.ignore)
+        .instrumentedRunWith(Sink.ignore)(name = "payment-stream", reportByName = true, traceable = false)
     } yield ()
 
 }

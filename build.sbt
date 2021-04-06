@@ -8,7 +8,7 @@ resolvers += Resolver.mavenLocal
 
 scalafmtOnCompile := true
 
-cinnamon / run := true
+cinnamon in run := true
 enablePlugins(Cinnamon)
 
 libraryDependencies ++= Seq(
