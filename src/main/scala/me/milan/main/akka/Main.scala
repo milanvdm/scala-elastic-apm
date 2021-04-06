@@ -3,10 +3,12 @@ package me.milan.main.akka
 import akka.NotUsed
 import akka.actor.setup.ActorSystemSetup
 import akka.actor.{ ActorSystem, BootstrapSetup }
-import akka.kafka.scaladsl.Transactional
+import akka.kafka.ConsumerMessage.PartitionOffset
+import akka.kafka.ProducerMessage.{ Envelope, Results }
+import akka.kafka.scaladsl.{ Producer, Transactional }
 import akka.kafka.{ ConsumerSettings, ProducerMessage, ProducerSettings, Subscriptions }
 import akka.stream.{ Materializer, RestartSettings }
-import akka.stream.scaladsl.{ FlowWithContext, RestartSource, Sink }
+import akka.stream.scaladsl.{ Flow, FlowWithContext, Keep, RestartSource, Sink }
 import cats.instances.future._
 import cats.syntax.functor._
 import me.milan.apm.ElasticApmAgent
@@ -22,9 +24,9 @@ import sttp.client.asynchttpclient.WebSocketHandler
 import sttp.client.{ SttpBackend, basicRequest, _ }
 import com.lightbend.cinnamon.akka.stream.CinnamonAttributes.SourceWithInstrumented
 import io.opentracing.util.GlobalTracer
+
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
-
 import org.apache.kafka.clients.producer.ProducerRecord
 
 object Main extends App {
@@ -96,17 +98,41 @@ object Main extends App {
                   () => Future(sql"select 42".execute().apply()),
                   () => Future(sql"select 42".execute().apply())
                 )
-                .map(_ => message)
+                .map(_ => message.partitionOffset)
             }
-            .map { message =>
+            .via(
+              PassThroughFlow[
+                PartitionOffset,
+                Long,
+                Long,
+                PartitionOffset
+              ](
+                Flow[Long]
+                  .map { offset =>
+                    ProducerMessage
+                      .single(new ProducerRecord("in-between", 0, random.nextInt.toString, "blah blah"), offset)
+                      .withPassThrough(offset)
+                  }
+                  .via(
+                    Flow[Envelope[String, String, Long]]
+                      .map(envelope => envelope.withPassThrough(envelope.passThrough))
+                      .via[Results[String, String, Long], NotUsed](
+                        Producer
+                          .flexiFlow[String, String, Long](producerSettings)
+                      )
+                      .map(_.passThrough)
+                  ),
+                (input: PartitionOffset) => input.offset,
+                Keep.right
+              )
+            )
+            .map { offset =>
               ProducerMessage
-                .single(new ProducerRecord("test", 0, random.nextInt.toString, "blah blah"), message.partitionOffset)
+                .single(new ProducerRecord("test", 0, random.nextInt.toString, "blah blah"), offset)
             }
             .via(Transactional.flow(producerSettings, "transactionalId"))
-        //.instrumentedPartial(name = "payment-stream-processor", traceable = false)
         }
         .runWith(Sink.ignore)
-      //.instrumentedRunWith(Sink.ignore)(name = "payment-stream", reportByName = true, traceable = false)
     } yield ()
 
 }

@@ -19,7 +19,7 @@ object Producer extends App {
 
   val producer = new KafkaProducer[String, String](producerProps)
 
-  while (true) {
+  (1 to 100).foreach { _ =>
     producer
       .send(
         new ProducerRecord(
