@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package me.milan.persistence.protos;
+
+message CreateIdResponse {
+  string id = 1;
+}
+
+message CreateIdRequest {
+  string request = 1;
+}
+
+service PersistenceService {
+  rpc CreateId (CreateIdRequest) returns (CreateIdResponse);
+}

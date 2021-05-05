@@ -3,36 +3,33 @@ package me.milan.main.akka
 import akka.NotUsed
 import akka.actor.setup.ActorSystemSetup
 import akka.actor.{ ActorSystem, BootstrapSetup }
+import akka.grpc.GrpcClientSettings
 import akka.kafka.ConsumerMessage.PartitionOffset
 import akka.kafka.ProducerMessage.{ Envelope, Results }
 import akka.kafka.scaladsl.{ Producer, Transactional }
 import akka.kafka.{ ConsumerSettings, ProducerMessage, ProducerSettings, Subscriptions }
+import akka.stream.scaladsl.{ Flow, Keep, RestartSource, Sink }
 import akka.stream.{ Materializer, RestartSettings }
-import akka.stream.scaladsl.{ Flow, FlowWithContext, Keep, RestartSource, Sink }
-import cats.instances.future._
-import cats.syntax.functor._
+import com.lightbend.cinnamon.akka.stream.CinnamonAttributes.SourceWithInstrumented
+import io.opentracing.util.GlobalTracer
 import me.milan.apm.ElasticApmAgent
 import me.milan.concurrent.future.MultiThreading
 import me.milan.concurrent.{ ExecutorConfig, ExecutorServices }
 import me.milan.db.Database
 import me.milan.http.HttpRequest
+import me.milan.persistence.protos.{ CreateIdRequest, PersistenceService, PersistenceServiceClient }
 import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.{ ByteArrayDeserializer, StringDeserializer, StringSerializer }
 import org.slf4j.{ Logger, LoggerFactory }
-import scalikejdbc.{ AutoSession, _ }
+import scalikejdbc._
+import sttp.client.SttpBackend
 import sttp.client.asynchttpclient.WebSocketHandler
-import sttp.client.{ SttpBackend, basicRequest, _ }
-import com.lightbend.cinnamon.akka.stream.CinnamonAttributes.SourceWithInstrumented
-import io.opentracing.util.GlobalTracer
 
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
-import org.apache.kafka.clients.producer.ProducerRecord
 
 object Main extends App {
-
-  // Call Grpc
-  // Finish process
 
   ElasticApmAgent.start()
 
@@ -43,7 +40,7 @@ object Main extends App {
 
   val logger: Logger = LoggerFactory.getLogger("Main")
 
-  val actorSystem: ActorSystem = ActorSystem(
+  implicit val actorSystem: ActorSystem = ActorSystem(
     "apm-test",
     ActorSystemSetup(BootstrapSetup().withDefaultExecutionContext(executionContext))
   )
@@ -67,6 +64,8 @@ object Main extends App {
     for {
       implicit0(database: AutoSession) <- Future(Database.init)
       implicit0(backend: SttpBackend[Future, Nothing, WebSocketHandler]) <- Future(HttpRequest.init())
+      persistenceServiceSettings = GrpcClientSettings.fromConfig(PersistenceService.name)
+      persistenceClient = PersistenceServiceClient(persistenceServiceSettings)
       _ <- RestartSource
         .onFailuresWithBackoff(
           RestartSettings(
@@ -95,7 +94,7 @@ object Main extends App {
               new MultiThreading(executionContext)
                 .runMulti(
                   () => Future(sql"select 42".execute().apply()),
-                  () => Future(sql"select 42".execute().apply())
+                  () => persistenceClient.createId(CreateIdRequest("test")).map(_ => ())
                 )
                 .map(_ => message.partitionOffset)
             }

@@ -2,10 +2,13 @@ package me.milan.apm
 
 import cats.effect.Sync
 import co.elastic.apm.attach.ElasticApmAttacher
+import co.elastic.apm.opentracing.ElasticApmTracer
 
 import scala.jdk.CollectionConverters._
 
 object ElasticApmAgent {
+
+  val openTracerAgent: ElasticApmTracer = new ElasticApmTracer()
 
   val configuration: Map[String, String] = Map(
     "service-name" -> "apm-playground",
