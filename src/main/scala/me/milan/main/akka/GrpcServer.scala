@@ -1,10 +1,8 @@
 package me.milan.main.akka
 
-import akka.actor.{ ActorSystem, BootstrapSetup }
 import akka.actor.setup.ActorSystemSetup
-import akka.grpc.scaladsl.ServiceHandler
+import akka.actor.{ ActorSystem, BootstrapSetup }
 import akka.http.scaladsl.Http
-import me.milan.main.akka.Main.executionContext
 import me.milan.persistence.protos.PersistenceServiceHandler
 
 import scala.concurrent.ExecutionContext.global
